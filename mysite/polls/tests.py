@@ -1,8 +1,10 @@
 import datetime
 
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase, LiveServerTestCase, SimpleTestCase
 from django.utils import timezone
 from django.urls import reverse
+from django.db import connections
+from django.db.utils import OperationalError
 
 from .models import Question, Choice
 
@@ -30,7 +32,6 @@ class QuestionTestCase(TestCase):
 
     def test_IsQuestionPublished(self):
         Q = Question.objects.last()
-        print(Q)
         self.assertEqual(Q.question_text, "What is your Favourite Colour?")
 
     def test_AreChoicesCorrect(self):
@@ -41,5 +42,23 @@ class QuestionTestCase(TestCase):
         self.assertIn("Blue", choice_texts)
         self.assertNotIn("Green", choice_texts)
 
+class URLResolutionTest(SimpleTestCase):
+    def test_reverse_index_path(self):
+        url = reverse('polls:index')
+        self.assertEqual(url, '/polls/')
 
-class Database
+class DatabaseConnectionTest(TransactionTestCase):
+
+    def test_database_connection(self):
+        connection = connections['default']
+        try:
+            c = connection.cursor()
+        except OperationalError:
+            self.fail("Database connection failed")
+
+class PollsLiveServerTest(LiveServerTestCase):
+
+    def test_polls_index_live_server(self):
+        url = reverse('polls:index')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
